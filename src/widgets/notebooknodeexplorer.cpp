@@ -1071,6 +1071,7 @@ QAction *NotebookNodeExplorer::createAction(Action p_act, QObject *p_parent, boo
                 this, []() {
                     emit VNoteX::getInst().newNoteRequested();
                 });
+        WidgetUtils::addActionShortcutText(act, coreConfig.getShortcut(CoreConfig::NewNote));
         break;
 
     case Action::NewFolder:
@@ -1081,6 +1082,7 @@ QAction *NotebookNodeExplorer::createAction(Action p_act, QObject *p_parent, boo
                 this, []() {
                     emit VNoteX::getInst().newFolderRequested();
                 });
+        WidgetUtils::addActionShortcutText(act, coreConfig.getShortcut(CoreConfig::NewFolder));
         break;
 
     case Action::Properties:
@@ -1173,6 +1175,7 @@ QAction *NotebookNodeExplorer::createAction(Action p_act, QObject *p_parent, boo
                 this, [this, p_master]() {
                     copySelectedNodes(true, p_master);
                 });
+        WidgetUtils::addActionShortcutText(act, coreConfig.getShortcut(CoreConfig::Cut));
         break;
 
     case Action::Paste:
@@ -2177,11 +2180,22 @@ void NotebookNodeExplorer::setupShortcuts()
 
     // Copy
     {
-        auto shortcut = WidgetUtils::createShortcut(coreConfig.getShortcut(CoreConfig::Copy), this);
+        auto shortcut = WidgetUtils::createShortcut(coreConfig.getShortcut(CoreConfig::Copy), this, Qt::WidgetWithChildrenShortcut);
         if (shortcut) {
             connect(shortcut, &QShortcut::activated,
                     this, [this]() {
                         copySelectedNodes(false, isActionFromMaster());
+                    });
+        }
+    }
+
+    // Cut
+    {
+        auto shortcut = WidgetUtils::createShortcut(coreConfig.getShortcut(CoreConfig::Cut), this);
+        if (shortcut) {
+            connect(shortcut, &QShortcut::activated,
+                    this, [this]() {
+                        copySelectedNodes(true, isActionFromMaster());
                     });
         }
     }

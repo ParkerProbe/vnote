@@ -22,6 +22,7 @@ namespace vnotex
             ExpandContentArea,
             Settings,
             NewNote,
+            NewFolder,
             CloseTab,
             CloseOtherTabs,
             CloseTabsToTheRight,
@@ -71,7 +72,9 @@ namespace vnotex
             UnitedEntry,
             Copy,
             Paste,
+            Cut,
             Properties,
+            Global_WakeUp,
             MaxShortcut
         };
         Q_ENUM(Shortcut)
