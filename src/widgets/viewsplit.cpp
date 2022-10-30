@@ -124,7 +124,7 @@ void ViewSplit::setupCornerWidget()
         m_windowListButton->setPopupMode(QToolButton::InstantPopup);
         m_windowListButton->setProperty(PropertyDefs::c_actionToolButton, true);
 
-        auto act = new QAction(s_windowListIcon, tr("Windows List"), m_windowListButton);
+        auto act = new QAction(s_windowListIcon, tr("Open Windows"), m_windowListButton);
         m_windowListButton->setDefaultAction(act);
 
         auto menu = WidgetsFactory::createMenu(m_windowListButton);
@@ -313,6 +313,18 @@ QVector<ViewWindow *> ViewSplit::findBuffer(const Buffer *p_buffer) const
 ViewWindow *ViewSplit::getViewWindow(int p_idx) const
 {
     return dynamic_cast<ViewWindow *>(widget(p_idx));
+}
+
+QVector<ViewWindow *> ViewSplit::getAllViewWindows() const
+{
+    QVector<ViewWindow *> wins;
+    int cnt = getViewWindowCount();
+    for (int i = 0; i < cnt; ++i) {
+        auto win = getViewWindow(i);
+        wins.push_back(win);
+    }
+
+    return wins;
 }
 
 int ViewSplit::getViewWindowCount() const
@@ -541,34 +553,41 @@ void ViewSplit::createContextMenuOnTabBar(QMenu *p_menu, int p_tabIdx)
                                            coreConfig.getShortcut(CoreConfig::Shortcut::CloseTab));
     }
 
+    // Close All Tabs.
+    {
+        auto closeTabAct = p_menu->addAction(tr("Close All Tabs"),
+                                             [this, p_tabIdx]() {
+                                                 closeMultipleTabs(p_tabIdx, CloseTabMode::CloseAllTabs);
+                                             });
+        WidgetUtils::addActionShortcutText(closeTabAct,
+                                           coreConfig.getShortcut(CoreConfig::Shortcut::CloseAllTabs));
+    }
+
     // Close Other Tabs.
     {
         auto closeTabAct = p_menu->addAction(tr("Close Other Tabs"),
                                              [this, p_tabIdx]() {
-                                                 QVector<ViewWindow *> windowsNeedToClose;
-                                                 int cnt = getViewWindowCount();
-                                                 for (int i = 0; i < cnt; ++i) {
-                                                     if (i != p_tabIdx) {
-                                                         windowsNeedToClose.push_back(getViewWindow(i));
-                                                     }
-                                                 }
-
-                                                 for (auto win : windowsNeedToClose) {
-                                                     emit viewWindowCloseRequested(win);
-                                                 }
+                                                 closeMultipleTabs(p_tabIdx, CloseTabMode::CloseOtherTabs);
                                              });
         WidgetUtils::addActionShortcutText(closeTabAct,
                                            coreConfig.getShortcut(CoreConfig::Shortcut::CloseOtherTabs));
+    }
+
+    // Close Tabs To The Left
+    {
+        auto closeTabAct = p_menu->addAction(tr("Close Tabs To The Left"),
+                                             [this, p_tabIdx]() {
+                                                 closeMultipleTabs(p_tabIdx, CloseTabMode::CloseTabsToTheLeft);
+                                             });
+        WidgetUtils::addActionShortcutText(closeTabAct,
+                                           coreConfig.getShortcut(CoreConfig::Shortcut::CloseTabsToTheLeft));
     }
 
     // Close Tabs To The Right.
     {
         auto closeTabAct = p_menu->addAction(tr("Close Tabs To The Right"),
                                              [this, p_tabIdx]() {
-                                                 int cnt = getViewWindowCount();
-                                                 for (int i = cnt - 1; i > p_tabIdx; --i) {
-                                                     closeTab(i);
-                                                 }
+                                                 closeMultipleTabs(p_tabIdx, CloseTabMode::CloseTabsToTheRight);
                                              });
         WidgetUtils::addActionShortcutText(closeTabAct,
                                            coreConfig.getShortcut(CoreConfig::Shortcut::CloseTabsToTheRight));
@@ -696,6 +715,46 @@ void ViewSplit::closeTab(int p_idx)
 {
     auto win = getViewWindow(p_idx);
     if (win) {
+        emit viewWindowCloseRequested(win);
+    }
+}
+
+void ViewSplit::closeMultipleTabs(CloseTabMode p_ctm)
+{
+    closeMultipleTabs(currentIndex(), p_ctm);
+}
+
+void ViewSplit::closeMultipleTabs(int p_idx, CloseTabMode p_ctm)
+{
+    QVector<ViewWindow *> windowsNeedToClose;
+    int cnt = getViewWindowCount();
+
+    switch (p_ctm) {
+    case CloseTabMode::CloseAllTabs:
+        for (int i = 0; i < cnt; i++) {
+            windowsNeedToClose.push_back(getViewWindow(i));
+        }
+        break;
+    case CloseTabMode::CloseOtherTabs:
+        for (int i = 0; i < cnt; i++) {
+            if (i != p_idx) {
+                windowsNeedToClose.push_back(getViewWindow(i));
+            }
+        }
+        break;
+    case CloseTabMode::CloseTabsToTheLeft:
+        for (int i = 0; i < p_idx; i++) {
+             windowsNeedToClose.push_back(getViewWindow(i));
+        }
+        break;
+    case CloseTabMode::CloseTabsToTheRight:
+        for (int i = cnt - 1; i > p_idx; i--) {
+             windowsNeedToClose.push_back(getViewWindow(i));
+        }
+        break;
+    }
+
+    for (auto win : windowsNeedToClose) {
         emit viewWindowCloseRequested(win);
     }
 }

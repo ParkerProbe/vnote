@@ -17,7 +17,6 @@ class QTextEdit;
 
 namespace vnotex
 {
-    class ToolBox;
     class NotebookExplorer;
     class TagExplorer;
     class ViewArea;
@@ -27,6 +26,7 @@ namespace vnotex
     class SearchPanel;
     class SnippetPanel;
     class HistoryPanel;
+    class WindowsPanel;
     class ExportDialog;
     class ConsoleViewer;
 
@@ -121,6 +121,8 @@ namespace vnotex
 
         void setupHistoryPanel();
 
+        void setupWindowsPanel();
+
         void setupNotebookExplorer();
 
         void setupTagExplorer();
@@ -160,8 +162,6 @@ namespace vnotex
 
         DockWidgetHelper m_dockWidgetHelper;
 
-        ToolBox *m_navigationToolBox = nullptr;
-
         NotebookExplorer *m_notebookExplorer = nullptr;
 
         TagExplorer *m_tagExplorer = nullptr;
@@ -182,6 +182,8 @@ namespace vnotex
 
         HistoryPanel *m_historyPanel = nullptr;
 
+        WindowsPanel *m_windowsPanel = nullptr;
+
         ExportDialog *m_exportDialog = nullptr;
 
         QSystemTrayIcon *m_trayIcon = nullptr;
@@ -199,6 +201,8 @@ namespace vnotex
         Qt::WindowStates m_windowOldState = Qt::WindowMinimized;
 
         QStringList m_visibleDocksBeforeExpand;
+
+        bool m_contentAreaExpanded = false;
     };
 } // ns vnotex
 

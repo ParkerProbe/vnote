@@ -3,7 +3,7 @@
     "metadata" : {
         "//comment": "When releasing new version, please go through the following configs to check if override is needed.",
         "//Comment": "markdown_editor#override_viewer_resource",
-        "version" : "3.13.0"
+        "version" : "3.15.1"
     },
     "core" : {
         "theme" : "pure",
@@ -16,7 +16,9 @@
             "NewNote" : "Ctrl+Alt+N",
             "NewFolder" : "Ctrl+Alt+S",
             "CloseTab" : "Ctrl+G, X",
+            "CloseAllTabs": "",
             "CloseOtherTabs" : "",
+            "CloseTabsToTheLeft" : "",
             "CloseTabsToTheRight" : "",
             "NavigationDock" : "Ctrl+G, A",
             "OutlineDock" : "Ctrl+G, U",
@@ -24,6 +26,7 @@
             "SnippetDock" : "Ctrl+G, S",
             "LocationListDock" : "Ctrl+G, C",
             "HistoryDock" : "",
+            "WindowsDock" : "",
             "TagDock" : "",
             "Search" : "Ctrl+Alt+F",
             "NavigationMode" : "Ctrl+G, W",
@@ -89,7 +92,7 @@
         ],
         "shortcut_leader_key" : "Ctrl+G",
         "toolbar_icon_size" : 18,
-        "docks_tabbar_icon_size" : 24,
+        "docks_tabbar_icon_size" : 20,
         "note_management" : {
             "external_node" : {
                 "//comment" : "Wildcard patterns of files and folders to exclude as external files",
@@ -106,6 +109,8 @@
         "per_notebook_history" : false,
         "//comment" : "Line ending policy for config files, platform/lf/crlf/cr",
         "line_ending" : "lf",
+        "//comment" : "read/edit",
+        "default_open_mode" : "read",
         "united_entry" : {
             "alias" : [
                 {
@@ -213,9 +218,13 @@
                 "FindPrevious" : "Shift+F3",
                 "ApplySnippet" : "Ctrl+G, I",
                 "Tag" : "Ctrl+G, B",
+                "Attachment" : "",
+                "AlternateViewMode" : "Ctrl+G, V",
+                "WordCount" : "",
                 "Debug" : "F12",
                 "Print" : "",
-                "ClearHighlights" : "Ctrl+G, Space"
+                "ClearHighlights" : "Ctrl+G, Space",
+                "ParseToMarkdownAndPaste" : "Ctrl+G, Ctrl+P"
             },
             "spell_check_auto_detect_language" : false,
             "spell_check_default_dictionary" : "en_US",
@@ -480,19 +489,21 @@
         "outline_section_number_enabled" : false,
         "//comment" : "Default find options in FindAndReplace",
         "find_and_replace_options" : 16,
-        "//comment" : "View order of the node explorer (NotebookNodeExplorer::ViewOrder)",
+        "//comment" : "View order of the notebook selector (enum ViewOrder)",
+        "notebook_selector_view_order" : 0,
+        "//comment" : "View order of the node explorer (enum ViewOrder)",
         "node_explorer_view_order" : 0,
         "node_explorer_external_files_visible" : true,
         "node_explorer_auto_import_external_files_enabled" : true,
         "//comment" : "Whether close the file before opening it with external program",
         "node_explorer_close_before_open_with_enabled" : true,
         "//comment" : "0 - combined/1 - separate_single/2 - separate_double",
-        "node_explorer_explore_mode" : 1,
+        "node_explorer_explore_mode" : 0,
         "search_panel_advanced_settings_visible" : true,
         "//comment" : "Docks to ignore when expanding content area of main window",
-        "main_window_keep_docks_expanding_content_area": ["OutlineDock.vnotex"],
+        "main_window_keep_docks_expanding_content_area": ["OutlineDock.vnotex", "WindowsDock.vnotex"],
         "snippet_panel_builtin_snippets_visible" : true,
-        "tag_explorer_two_columns_enabled" : true,
+        "tag_explorer_two_columns_enabled" : false,
         "new_note_default_file_type" : 0,
         "united_entry_expand_all" : false
     }

@@ -29,6 +29,7 @@ namespace vnotex
             SearchDock,
             SnippetDock,
             OutlineDock,
+            WindowsDock,
             ConsoleDock,
             LocationListDock,
             MaxDock
@@ -54,9 +55,6 @@ namespace vnotex
         QStringList hideDocks();
 
         void restoreDocks(const QStringList &p_visibleDocks);
-
-        // If there is any dock that does not belong to keep docks visible.
-        bool isAnyDockVisible() const;
 
     // NavigationMode.
     protected:
@@ -92,11 +90,15 @@ namespace vnotex
             QIcon m_icon;
 
             int m_rotationAngle = INT_MIN;
+
+            bool m_isSideBar = false;
         };
 
         void setupNavigationDock();
 
         void setupOutlineDock();
+
+        void setupWindowsDock();
 
         void setupConsoleDock();
 
@@ -118,7 +120,7 @@ namespace vnotex
 
         void setupDockActivateShortcut(QDockWidget *p_dock, const QString &p_keys);
 
-        const QIcon &getDockIcon(DockIndex p_dockIndex);
+        const QIcon &getDockIcon(DockIndex p_dockIndex, bool p_isSideBar);
 
         static QString iconFileName(DockIndex p_dockIndex);
 

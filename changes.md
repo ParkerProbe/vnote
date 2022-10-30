@@ -1,4 +1,21 @@
 # Changes
+## v3.15.0
+* Editor supports Word Count
+* Add Open Windows panel
+* Theme: add Vue-light theme
+* Support default open mode
+* NotebookSelector: support dynamic icons for notebooks
+
+## v3.14.0
+* Theme: support custom icons
+* Theme: refine icons
+* NavigationMode: fix issue for input method
+
+## v3.13.1
+* Shortcuts for Copy/Paste/Properties in node explorer
+* Global shortcut to call out main window
+* UnitedEntry: bug fix for macOS
+
 ## v3.13.0
 * United Entry: migration of Universal Entry
 

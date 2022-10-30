@@ -291,23 +291,32 @@ void NotebookNodeExplorer::activateItemNode(const NodeData &p_data)
         return;
     }
 
+    const auto &coreConfig = ConfigMgr::getInst().getCoreConfig();
+    auto defaultMode = coreConfig.getDefaultOpenMode();
+
     if (p_data.isNode()) {
         if (checkInvalidNode(p_data.getNode())) {
             return;
         }
-        emit nodeActivated(p_data.getNode(), QSharedPointer<FileOpenParameters>::create());
+        auto paras = QSharedPointer<FileOpenParameters>::create();
+        paras->m_mode = defaultMode;
+        emit nodeActivated(p_data.getNode(), paras);
     } else if (p_data.isExternalNode()) {
         // Import to config first.
         if (m_autoImportExternalFiles) {
             auto importedNode = importToIndex(p_data.getExternalNode());
             if (importedNode) {
-                emit nodeActivated(importedNode.data(), QSharedPointer<FileOpenParameters>::create());
+                auto paras = QSharedPointer<FileOpenParameters>::create();
+                paras->m_mode = defaultMode;
+                emit nodeActivated(importedNode.data(), paras);
             }
             return;
         }
 
         // Just open it.
-        emit fileActivated(p_data.getExternalNode()->fetchAbsolutePath(), QSharedPointer<FileOpenParameters>::create());
+        auto paras = QSharedPointer<FileOpenParameters>::create();
+        paras->m_mode = defaultMode;
+        emit fileActivated(p_data.getExternalNode()->fetchAbsolutePath(), paras);
     }
 }
 
@@ -946,7 +955,9 @@ void NotebookNodeExplorer::createContextMenuOnNode(QMenu *p_menu, const Node *p_
 {
     const int selectedSize = p_master ? m_masterExplorer->selectedItems().size() : m_slaveExplorer->selectedItems().size();
 
-    createAndAddAction(Action::Open, p_menu, p_master);
+    createAndAddAction(Action::Edit, p_menu, p_master);
+
+    createAndAddAction(Action::Read, p_menu, p_master);
 
     addOpenWithMenu(p_menu, p_master);
 
@@ -1009,7 +1020,9 @@ void NotebookNodeExplorer::createContextMenuOnExternalNode(QMenu *p_menu, const 
 
     const int selectedSize = p_master ? m_masterExplorer->selectedItems().size() : m_slaveExplorer->selectedItems().size();
 
-    createAndAddAction(Action::Open, p_menu, p_master);
+    createAndAddAction(Action::Edit, p_menu, p_master);
+
+    createAndAddAction(Action::Read, p_menu, p_master);
 
     addOpenWithMenu(p_menu, p_master);
 
@@ -1194,7 +1207,7 @@ QAction *NotebookNodeExplorer::createAction(Action p_act, QObject *p_parent, boo
         break;
 
     case Action::RemoveFromConfig:
-        act = new QAction(tr("&Remove From Index"), p_parent);
+        act = new QAction(tr("Remo&ve From Index"), p_parent);
         connect(act, &QAction::triggered,
                 this, [this, p_master]() {
                     removeSelectedNodesFromConfig(p_master);
@@ -1247,6 +1260,8 @@ QAction *NotebookNodeExplorer::createAction(Action p_act, QObject *p_parent, boo
         break;
 
     case Action::Open:
+        // Use Edit and Read instead.
+        Q_ASSERT(false);
         act = new QAction(tr("&Open"), p_parent);
         connect(act, &QAction::triggered,
                 this, [this, p_master]() {
@@ -1271,8 +1286,44 @@ QAction *NotebookNodeExplorer::createAction(Action p_act, QObject *p_parent, boo
                 });
         break;
 
+    case Action::Edit:
+        Q_FALLTHROUGH();
+    case Action::Read:
+    {
+        const bool isEdit = p_act == Action::Edit;
+        act = new QAction(isEdit ? tr("&Edit") : tr("&Read"), p_parent);
+        connect(act, &QAction::triggered,
+                this, [this, p_master, isEdit]() {
+                    // Support nodes and external nodes.
+                    // Do nothing for folders.
+                    auto selectedNodes = p_master ? getMasterSelectedNodesAndExternalNodes() : getSlaveSelectedNodesAndExternalNodes();
+                    for (const auto &externalNode : selectedNodes.second) {
+                        if (!externalNode->isFolder()) {
+                            auto paras = QSharedPointer<FileOpenParameters>::create();
+                            paras->m_mode = isEdit ? ViewWindowMode::Edit : ViewWindowMode::Read;
+                            paras->m_forceMode = true;
+                            emit fileActivated(externalNode->fetchAbsolutePath(), paras);
+                        }
+                    }
+
+                    for (const auto &node : selectedNodes.first) {
+                        if (checkInvalidNode(node)) {
+                            continue;
+                        }
+
+                        if (node->hasContent()) {
+                            auto paras = QSharedPointer<FileOpenParameters>::create();
+                            paras->m_mode = isEdit ? ViewWindowMode::Edit : ViewWindowMode::Read;
+                            paras->m_forceMode = true;
+                            emit nodeActivated(node, paras);
+                        }
+                    }
+                });
+        break;
+    }
+
     case Action::ExpandAll:
-        act = new QAction(tr("&Expand All\t*"), p_parent);
+        act = new QAction(tr("E&xpand All\t*"), p_parent);
         connect(act, &QAction::triggered,
                 this, [this]() {
                     auto item = m_masterExplorer->currentItem();
@@ -1801,7 +1852,7 @@ void NotebookNodeExplorer::sortNodes(QVector<QSharedPointer<Node>> &p_nodes, int
         reversed = true;
         Q_FALLTHROUGH();
     case ViewOrder::OrderedByName:
-        std::sort(p_nodes.begin() + p_start, p_nodes.begin() + p_end, [reversed](const QSharedPointer<Node> &p_a, const QSharedPointer<Node> p_b) {
+        std::sort(p_nodes.begin() + p_start, p_nodes.begin() + p_end, [reversed](const QSharedPointer<Node> &p_a, const QSharedPointer<Node> &p_b) {
             if (reversed) {
                 return p_b->getName().toLower() < p_a->getName().toLower();
             } else {
@@ -1814,7 +1865,7 @@ void NotebookNodeExplorer::sortNodes(QVector<QSharedPointer<Node>> &p_nodes, int
         reversed = true;
         Q_FALLTHROUGH();
     case ViewOrder::OrderedByCreatedTime:
-        std::sort(p_nodes.begin() + p_start, p_nodes.begin() + p_end, [reversed](const QSharedPointer<Node> &p_a, const QSharedPointer<Node> p_b) {
+        std::sort(p_nodes.begin() + p_start, p_nodes.begin() + p_end, [reversed](const QSharedPointer<Node> &p_a, const QSharedPointer<Node> &p_b) {
             if (reversed) {
                 return p_b->getCreatedTimeUtc() < p_a->getCreatedTimeUtc();
             } else {
@@ -1827,7 +1878,7 @@ void NotebookNodeExplorer::sortNodes(QVector<QSharedPointer<Node>> &p_nodes, int
         reversed = true;
         Q_FALLTHROUGH();
     case ViewOrder::OrderedByModifiedTime:
-        std::sort(p_nodes.begin() + p_start, p_nodes.begin() + p_end, [reversed](const QSharedPointer<Node> &p_a, const QSharedPointer<Node> p_b) {
+        std::sort(p_nodes.begin() + p_start, p_nodes.begin() + p_end, [reversed](const QSharedPointer<Node> &p_a, const QSharedPointer<Node> &p_b) {
             if (reversed) {
                 return p_b->getModifiedTimeUtc() < p_a->getModifiedTimeUtc();
             } else {
@@ -2135,7 +2186,7 @@ void NotebookNodeExplorer::addOpenWithMenu(QMenu *p_menu, bool p_master)
     {
         auto defaultAct = subMenu->addAction(tr("System Default Program"));
         connect(defaultAct, &QAction::triggered,
-                this, [this, defaultAct, p_master]() {
+                this, [this, p_master]() {
                     openSelectedNodesWithProgram(QString(), p_master);
                 });
         const auto &coreConfig = ConfigMgr::getInst().getCoreConfig();
@@ -2169,7 +2220,9 @@ void NotebookNodeExplorer::setupShortcuts()
 
     // OpenWithDefaultProgram.
     {
-        auto shortcut = WidgetUtils::createShortcut(coreConfig.getShortcut(CoreConfig::OpenWithDefaultProgram), this);
+        auto shortcut = WidgetUtils::createShortcut(coreConfig.getShortcut(CoreConfig::OpenWithDefaultProgram),
+                                                    this,
+                                                    Qt::WidgetWithChildrenShortcut);
         if (shortcut) {
             connect(shortcut, &QShortcut::activated,
                     this, [this]() {
@@ -2180,7 +2233,9 @@ void NotebookNodeExplorer::setupShortcuts()
 
     // Copy
     {
-        auto shortcut = WidgetUtils::createShortcut(coreConfig.getShortcut(CoreConfig::Copy), this, Qt::WidgetWithChildrenShortcut);
+        auto shortcut = WidgetUtils::createShortcut(coreConfig.getShortcut(CoreConfig::Copy),
+                                                    this,
+                                                    Qt::WidgetWithChildrenShortcut);
         if (shortcut) {
             connect(shortcut, &QShortcut::activated,
                     this, [this]() {
@@ -2191,7 +2246,9 @@ void NotebookNodeExplorer::setupShortcuts()
 
     // Cut
     {
-        auto shortcut = WidgetUtils::createShortcut(coreConfig.getShortcut(CoreConfig::Cut), this);
+        auto shortcut = WidgetUtils::createShortcut(coreConfig.getShortcut(CoreConfig::Cut),
+                                                    this,
+                                                    Qt::WidgetWithChildrenShortcut);
         if (shortcut) {
             connect(shortcut, &QShortcut::activated,
                     this, [this]() {
@@ -2202,7 +2259,9 @@ void NotebookNodeExplorer::setupShortcuts()
 
     // Paste
     {
-        auto shortcut = WidgetUtils::createShortcut(coreConfig.getShortcut(CoreConfig::Paste), this);
+        auto shortcut = WidgetUtils::createShortcut(coreConfig.getShortcut(CoreConfig::Paste),
+                                                    this,
+                                                    Qt::WidgetWithChildrenShortcut);
         if (shortcut) {
             connect(shortcut, &QShortcut::activated,
                     this, &NotebookNodeExplorer::pasteNodesFromClipboard);
@@ -2211,7 +2270,9 @@ void NotebookNodeExplorer::setupShortcuts()
 
     // Properties
     {
-        auto shortcut = WidgetUtils::createShortcut(coreConfig.getShortcut(CoreConfig::Properties), this);
+        auto shortcut = WidgetUtils::createShortcut(coreConfig.getShortcut(CoreConfig::Properties),
+                                                    this,
+                                                    Qt::WidgetWithChildrenShortcut);
         if (shortcut) {
             connect(shortcut,  &QShortcut::activated,
                     this, [this]() {
@@ -2222,7 +2283,7 @@ void NotebookNodeExplorer::setupShortcuts()
 
     const auto &sessionConfig = ConfigMgr::getInst().getSessionConfig();
     for (const auto &pro : sessionConfig.getExternalPrograms()) {
-        auto shortcut = WidgetUtils::createShortcut(pro.m_shortcut, this);
+        auto shortcut = WidgetUtils::createShortcut(pro.m_shortcut, this, Qt::WidgetWithChildrenShortcut);
         const auto &name = pro.m_name;
         if (shortcut) {
             connect(shortcut, &QShortcut::activated,
@@ -2302,20 +2363,7 @@ void NotebookNodeExplorer::loadMasterItemChildren(QTreeWidgetItem *p_item) const
 QString NotebookNodeExplorer::generateToolTip(const Node *p_node)
 {
     Q_ASSERT(p_node->isLoaded());
-    QString tip = p_node->exists() ? p_node->getName() : (tr("[Invalid] %1").arg(p_node->getName()));
-    tip += QLatin1String("\n\n");
-
-    if (!p_node->getTags().isEmpty()) {
-        const auto &tags = p_node->getTags();
-        QString tagString = tags.first();
-        for (int i = 1; i < tags.size(); ++i) {
-            tagString += QLatin1String("; ") + tags[i];
-        }
-        tip += tr("Tags: %1\n").arg(tagString);
-    }
-
-    tip += tr("Created Time: %1\n").arg(Utils::dateTimeString(p_node->getCreatedTimeUtc().toLocalTime()));
-    tip += tr("Modified Time: %1").arg(Utils::dateTimeString(p_node->getModifiedTimeUtc().toLocalTime()));
+    const QString tip = p_node->exists() ? p_node->getName() : (tr("[Invalid] %1").arg(p_node->getName()));
     return tip;
 }
 

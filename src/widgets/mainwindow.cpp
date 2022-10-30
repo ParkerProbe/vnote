@@ -21,7 +21,6 @@
 #include <QProgressDialog>
 #include <QHotkey>
 
-#include "toolbox.h"
 #include "notebookexplorer.h"
 #include "vnotex.h"
 #include "notebookmgr.h"
@@ -47,6 +46,8 @@
 #include "searchpanel.h"
 #include "snippetpanel.h"
 #include "historypanel.h"
+#include "windowspanel.h"
+#include "windowsprovider.h"
 #include <notebook/notebook.h>
 #include "searchinfoprovider.h"
 #include <vtextedit/spellchecker.h>
@@ -263,6 +264,8 @@ void MainWindow::setupDocks()
 
     setupHistoryPanel();
 
+    setupWindowsPanel();
+
     setupSearchPanel();
 
     setupSnippetPanel();
@@ -302,6 +305,12 @@ void MainWindow::setupHistoryPanel()
 {
     m_historyPanel = new HistoryPanel(this);
     m_historyPanel->setObjectName("HistoryPanel.vnotex");
+}
+
+void MainWindow::setupWindowsPanel()
+{
+    m_windowsPanel = new WindowsPanel(QSharedPointer<WindowsProvider>::create(m_viewArea), this);
+    m_windowsPanel->setObjectName("WindowsPanel.vnotex");
 }
 
 void MainWindow::setupLocationList()
@@ -391,6 +400,9 @@ void MainWindow::closeEvent(QCloseEvent *p_event)
             }
         }
 
+        // Do not expand the content area.
+        setContentAreaExpanded(false);
+
         saveStateAndGeometry();
     }
 
@@ -432,6 +444,7 @@ void MainWindow::saveStateAndGeometry()
     sg.m_visibleDocksBeforeExpand = m_visibleDocksBeforeExpand;
     sg.m_tagExplorerState = m_tagExplorer->saveState();
     sg.m_notebookExplorerState = m_notebookExplorer->saveState();
+    sg.m_locationListState = m_locationList->saveState();
 
     auto& sessionConfig = ConfigMgr::getInst().getSessionConfig();
     sessionConfig.setMainWindowStateGeometry(sg);
@@ -466,6 +479,10 @@ void MainWindow::loadStateAndGeometry(bool p_stateOnly)
     if (!sg.m_notebookExplorerState.isEmpty()) {
         m_notebookExplorer->restoreState(sg.m_notebookExplorerState);
     }
+
+    if (!sg.m_locationListState.isEmpty()) {
+        m_locationList->restoreState(sg.m_locationListState);
+    }
 }
 
 void MainWindow::resetStateAndGeometry()
@@ -482,6 +499,11 @@ void MainWindow::resetStateAndGeometry()
 
 void MainWindow::setContentAreaExpanded(bool p_expanded)
 {
+    if (m_contentAreaExpanded == p_expanded) {
+        return;
+    }
+
+    m_contentAreaExpanded = p_expanded;
     if (p_expanded) {
         // Store the state and hide.
         m_visibleDocksBeforeExpand = m_dockWidgetHelper.hideDocks();
@@ -493,7 +515,7 @@ void MainWindow::setContentAreaExpanded(bool p_expanded)
 
 bool MainWindow::isContentAreaExpanded() const
 {
-    return !m_dockWidgetHelper.isAnyDockVisible();
+    return m_contentAreaExpanded;
 }
 
 void MainWindow::demoWidget()

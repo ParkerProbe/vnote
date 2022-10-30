@@ -51,12 +51,22 @@ namespace vnotex
                                   const QString &p_fg,
                                   const QString &p_border);
 
+        static QIcon drawTextRectIcon(const QString &p_text,
+                                      const QString &p_fg,
+                                      const QString &p_bg,
+                                      const QString &p_border,
+                                      int p_rectWidth = 56,
+                                      int p_rectHeight = 56,
+                                      int p_rectRadius = 0);
+
     private:
         static QString replaceForegroundOfIcon(const QString &p_iconContent, const QString &p_foreground);
 
         static QString s_defaultIconForeground;
 
         static QString s_defaultIconDisabledForeground;
+
+        static bool isMonochrome(const QString &p_iconContent);
     };
 } // ns vnotex
 
