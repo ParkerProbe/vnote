@@ -374,7 +374,7 @@ bool MarkdownEditor::insertImageToBufferFromLocalFile(const QString &p_title,
             ba = FileUtils::readFile(p_srcImagePath);
         } catch (Exception &e) {
             MessageBoxHelper::notify(MessageBoxHelper::Warning,
-                                     QString("Failed to read local image file (%1) (%2).").arg(p_srcImagePath, e.what()),
+                                     tr("Failed to read local image file (%1) (%2).").arg(p_srcImagePath, e.what()),
                                      this);
             return false;
         }
@@ -387,7 +387,7 @@ bool MarkdownEditor::insertImageToBufferFromLocalFile(const QString &p_title,
             destFilePath = m_buffer->insertImage(p_srcImagePath, destFileName);
         } catch (Exception &e) {
             MessageBoxHelper::notify(MessageBoxHelper::Warning,
-                                     QString("Failed to insert image from local file (%1) (%2).").arg(p_srcImagePath, e.what()),
+                                     tr("Failed to insert image from local file (%1) (%2).").arg(p_srcImagePath, e.what()),
                                      this);
             return false;
         }
@@ -430,7 +430,7 @@ bool MarkdownEditor::insertImageToBufferFromData(const QString &p_title,
             destFilePath = m_buffer->insertImage(p_image, destFileName);
         } catch (Exception &e) {
             MessageBoxHelper::notify(MessageBoxHelper::Warning,
-                                     QString("Failed to insert image from data (%1).").arg(e.what()),
+                                     tr("Failed to insert image from data (%1).").arg(e.what()),
                                      this);
             return false;
         }
@@ -545,8 +545,9 @@ bool MarkdownEditor::processHtmlFromMimeData(const QMimeData *p_source)
     const QString html(p_source->html());
 
     // Process <img>.
-    QRegExp reg("<img ([^>]*)src=\"([^\"]+)\"([^>]*)>");
-    if (reg.indexIn(html) != -1 && HtmlUtils::hasOnlyImgTag(html)) {
+    QRegularExpression reg("<img ([^>]*)src=\"([^\"]+)\"([^>]*)>");
+    QRegularExpressionMatch match;
+    if (html.indexOf(reg, 0, &match) != -1 && HtmlUtils::hasOnlyImgTag(html)) {
         if (p_source->hasImage()) {
             // Both image data and URL are embedded.
             SelectDialog dialog(tr("Insert From Clipboard"), this);
@@ -562,7 +563,7 @@ bool MarkdownEditor::processHtmlFromMimeData(const QMimeData *p_source)
                     return true;
                 } else if (selection == 2) {
                     // Insert as link.
-                    auto imageLink = vte::MarkdownUtils::generateImageLink("", reg.cap(2), "");
+                    auto imageLink = vte::MarkdownUtils::generateImageLink("", match.captured(2), "");
                     m_textEdit->insertPlainText(imageLink);
                     return true;
                 }
@@ -571,7 +572,7 @@ bool MarkdownEditor::processHtmlFromMimeData(const QMimeData *p_source)
             }
         }
 
-        insertImageFromUrl(reg.cap(2));
+        insertImageFromUrl(match.captured(2));
         return true;
     }
 
@@ -1198,7 +1199,7 @@ void MarkdownEditor::handleHtmlToMarkdownData(quint64 p_id, TimeStamp p_timeStam
 
 static QString purifyImageTitle(QString p_title)
 {
-    return p_title.remove(QRegExp("[\\r\\n\\[\\]]"));
+    return p_title.remove(QRegularExpression("[\\r\\n\\[\\]]"));
 }
 
 void MarkdownEditor::fetchImagesToLocalAndReplace(QString &p_text)
@@ -1219,9 +1220,9 @@ void MarkdownEditor::fetchImagesToLocalAndReplace(QString &p_text)
     proDlg.setWindowModality(Qt::WindowModal);
     proDlg.setWindowTitle(tr("Fetch Images To Local"));
 
-    QRegExp zhihuRegExp("^https?://www\\.zhihu\\.com/equation\\?tex=(.+)$");
+    QRegularExpression zhihuRegExp("^https?://www\\.zhihu\\.com/equation\\?tex=(.+)$");
 
-    QRegExp regExp(vte::MarkdownUtils::c_imageLinkRegExp);
+    QRegularExpression regExp(vte::MarkdownUtils::c_imageLinkRegExp);
     for (int i = regs.size() - 1; i >= 0; --i) {
         proDlg.setValue(regs.size() - 1 - i);
         if (proDlg.wasCanceled()) {
@@ -1230,14 +1231,15 @@ void MarkdownEditor::fetchImagesToLocalAndReplace(QString &p_text)
 
         const auto &reg = regs[i];
         QString linkText = p_text.mid(reg.m_startPos, reg.m_endPos - reg.m_startPos);
-        if (regExp.indexIn(linkText) == -1) {
+        QRegularExpressionMatch match;
+        if (linkText.indexOf(regExp, 0, &match) == -1) {
             continue;
         }
 
         qDebug() << "fetching image link" << linkText;
 
-        const QString imageTitle = purifyImageTitle(regExp.cap(1).trimmed());
-        QString imageUrl = regExp.cap(2).trimmed();
+        const QString imageTitle = purifyImageTitle(match.captured(1).trimmed());
+        QString imageUrl = match.captured(2).trimmed();
 
         const int maxUrlLength = 100;
         QString urlToDisplay(imageUrl);
@@ -1247,8 +1249,9 @@ void MarkdownEditor::fetchImagesToLocalAndReplace(QString &p_text)
         proDlg.setLabelText(tr("Fetching image (%1)").arg(urlToDisplay));
 
         // Handle equation from zhihu.com like http://www.zhihu.com/equation?tex=P.
-        if (zhihuRegExp.indexIn(imageUrl) != -1) {
-            QString tex = zhihuRegExp.cap(1).trimmed();
+        QRegularExpressionMatch zhihuMatch;
+        if (imageUrl.indexOf(zhihuRegExp, 0, &zhihuMatch) != -1) {
+            QString tex = zhihuMatch.captured(1).trimmed();
 
             // Remove the +.
             tex.replace(QChar('+'), " ");
@@ -1321,7 +1324,7 @@ void MarkdownEditor::fetchImagesToLocalAndReplace(QString &p_text)
 
         // Replace URL in link.
         QString newLink = QString("![%1](%2%3%4)")
-                                 .arg(imageTitle, urlInLink, regExp.cap(3), regExp.cap(6));
+                                 .arg(imageTitle, urlInLink, match.captured(3), match.captured(6));
         p_text.replace(reg.m_startPos,
                        reg.m_endPos - reg.m_startPos,
                        newLink);
@@ -1470,7 +1473,7 @@ QString MarkdownEditor::saveToImageHost(const QByteArray &p_imageData, const QSt
 
     if (targetUrl.isEmpty()) {
         MessageBoxHelper::notify(MessageBoxHelper::Warning,
-                                 QString("Failed to upload image to image host (%1) as (%2).").arg(m_imageHost->getName(), destPath),
+                                 tr("Failed to upload image to image host (%1) as (%2).").arg(m_imageHost->getName(), destPath),
                                  QString(),
                                  errMsg,
                                  this);
@@ -1551,7 +1554,7 @@ void MarkdownEditor::uploadImagesToImageHost()
             ba = FileUtils::readFile(link.m_path);
         } catch (Exception &e) {
             MessageBoxHelper::notify(MessageBoxHelper::Warning,
-                                     QString("Failed to read local image file (%1) (%2).").arg(link.m_path, e.what()),
+                                     tr("Failed to read local image file (%1) (%2).").arg(link.m_path, e.what()),
                                      this);
             continue;
         }
@@ -1569,7 +1572,7 @@ void MarkdownEditor::uploadImagesToImageHost()
 
         if (targetUrl.isEmpty()) {
             MessageBoxHelper::notify(MessageBoxHelper::Warning,
-                                     QString("Failed to upload image to image host (%1) as (%2).").arg(host->getName(), destPath),
+                                     tr("Failed to upload image to image host (%1) as (%2).").arg(host->getName(), destPath),
                                      QString(),
                                      errMsg,
                                      this);

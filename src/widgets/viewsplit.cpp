@@ -10,6 +10,7 @@
 #include <QMimeData>
 #include <QFileInfo>
 #include <QShortcut>
+#include <QActionGroup>
 
 #include "viewwindow.h"
 #include "viewarea.h"
@@ -80,7 +81,13 @@ void ViewSplit::setupUI()
                 closeTab(p_idx);
             });
     connect(this, &QTabWidget::tabBarDoubleClicked,
-            this, &ViewSplit::closeTab);
+            this, [this](int p_idx) {
+                if (p_idx == -1) {
+                    emit VNoteX::getInst().newQuickNoteRequested();
+                } else {
+                    closeTab(p_idx);
+                }
+            });
     connect(this, &QTabWidget::tabBarClicked,
             this, [this](int p_idx) {
                 Q_UNUSED(p_idx);

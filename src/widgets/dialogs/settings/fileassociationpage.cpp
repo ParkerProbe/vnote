@@ -39,6 +39,8 @@ void FileAssociationPage::setupUI()
     m_externalProgramsBox = new QGroupBox(tr("External Programs"), this);
     WidgetsFactory::createFormLayout(m_externalProgramsBox);
     mainLayout->addWidget(m_externalProgramsBox);
+
+    mainLayout->addStretch();
 }
 
 void FileAssociationPage::loadInternal()
@@ -62,7 +64,7 @@ bool FileAssociationPage::saveInternal()
         if (name.isEmpty()) {
             continue;
         }
-        auto suffixes = lineEdit->text().split(c_suffixSeparator, QString::SkipEmptyParts);
+        auto suffixes = lineEdit->text().split(c_suffixSeparator, Qt::SkipEmptyParts);
         fileTypeSuffixes.push_back(CoreConfig::FileTypeSuffix(name, Utils::toLower(suffixes)));
     }
 
